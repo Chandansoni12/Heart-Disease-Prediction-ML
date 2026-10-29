@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Disease Prediction — ML Analysis Dashboard</title>
+    <meta name="description" content="Comprehensive analysis, hyperparameter tuning, SVM kernel comparison, and patient prediction on the UCI Cleveland dataset.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="app-header">
+    <div class="header-container">
+        <div class="logo-area">
+            <div class="logo-icon"><i data-lucide="heart-pulse"></i></div>
+            <div>
+                <h1 class="logo-title">Heart Disease Prediction</h1>
+                <p class="logo-subtitle">UCI Cleveland Dataset · Support Vector Machine &amp; Hyperparameter Tuning Analysis</p>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="hstat"><span class="hs-label">Records</span><span class="hs-val" id="hdr-records">297</span></div>
+            <div class="hstat"><span class="hs-label">Features</span><span class="hs-val" id="hdr-features">13</span></div>
+            <div class="hstat accent"><span class="hs-label">Tuned Model</span><span class="hs-val" id="hdr-best">SVM (RBF)</span></div>
+            <a href="https://github.com/Chandansoni12/Heart-Disease-Prediction-ML" target="_blank" rel="noopener noreferrer" class="github-header-link" title="GitHub: Chandansoni12">
+                <i data-lucide="github"></i>
+                <span>Chandansoni12</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+
+<!-- ═══════════════ TAB BAR ═══════════════ -->
+<nav class="tabs">
+    <button class="tab active" data-tab="overview"><i data-lucide="database"></i> Data Overview &amp; Overall Diagrams</button>
+    <button class="tab" data-tab="distributions"><i data-lucide="bar-chart-3"></i> Feature Distributions</button>
+    <button class="tab" data-tab="relationships"><i data-lucide="git-merge"></i> Correlations &amp; Relationships</button>
+    <button class="tab" data-tab="target"><i data-lucide="target"></i> Feature vs Target</button>
+    <button class="tab" data-tab="models"><i data-lucide="cpu"></i> Model, Tuning &amp; Kernels</button>
+    <button class="tab" data-tab="predict"><i data-lucide="stethoscope"></i> Patient Prediction</button>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 1 ─ DATA OVERVIEW & OVERALL DIAGRAMS                    -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="tab-overview" class="pane active">
+    <div class="sec-head">
+        <h2><i data-lucide="info"></i> Dataset Overview &amp; Overall Cohort Diagrams</h2>
+        <p>UCI Heart Disease — Cleveland subset · 297 cleaned records · 13 predictive features · Binary classification</p>
+    </div>
+
+    <!-- Top stat cards -->
+    <div class="stat-row">
+        <div class="scard"><div class="sc-icon blue"><i data-lucide="users"></i></div><div><span class="sc-label">Total Patients</span><span class="sc-val" id="ov-total">297</span></div></div>
+        <div class="scard"><div class="sc-icon purple"><i data-lucide="columns"></i></div><div><span class="sc-label">Feature Columns</span><span class="sc-val" id="ov-features">13</span></div></div>
+        <div class="scard"><div class="sc-icon green"><i data-lucide="heart"></i></div><div><span class="sc-label">No Disease (0)</span><span class="sc-val" id="ov-no">160</span></div></div>
+        <div class="scard"><div class="sc-icon red"><i data-lucide="heart-crack"></i></div><div><span class="sc-label">Heart Disease (1)</span><span class="sc-val" id="ov-yes">137</span></div></div>
+    </div>
+
+    <!-- Overall Data Diagrams: PCA and Clinical Radar -->
+    <div class="g2">
+        <!-- 2D PCA Patient Feature Space Projection -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="scan"></i> 2D PCA Patient Feature Space Projection</h3>
+                <span class="badge blue">297 Patients</span>
+            </div>
+            <p class="card-desc">Principal Component Analysis projecting all 13 scaled features into 2 dimensions, showing disease distribution across patient feature manifold.</p>
+            <div class="ch-lg"><canvas id="ch-pca-projection"></canvas></div>
+            <div class="card-meta" id="pca-var-text"><i data-lucide="info"></i> PC1: 27.4% · PC2: 15.5% (Total 42.9% explained variance)</div>
+        </div>
+
+        <!-- Clinical Biomarker Profiles Radar -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="activity"></i> Clinical Signature: Healthy vs Heart Disease</h3>
+                <span class="badge purple">Normalized Cohort Means</span>
+            </div>
+            <p class="card-desc">Comparative radar profile showing biomarker signatures (Age, Resting BP, Cholesterol, Max Heart Rate, ST Depression).</p>
+            <div class="ch-lg"><canvas id="ch-clinical-radar"></canvas></div>
+            <div class="card-meta"><i data-lucide="check-circle-2"></i> Disease cohort exhibits significantly elevated ST depression (oldpeak), higher BP/cholesterol, and lower peak heart rate.</div>
+        </div>
+    </div>
+
+    <!-- Class Distribution & Numerical Table -->
+    <div class="g2 mt">
+        <!-- Class Distribution -->
+        <div class="card">
+            <h3><i data-lucide="pie-chart"></i> Target Class Distribution</h3>
+            <div class="ch-md"><canvas id="ch-classDist"></canvas></div>
+        </div>
+        <!-- Numerical Summary Table -->
+        <div class="card">
+            <h3><i data-lucide="table"></i> Numerical Feature Statistics</h3>
+            <div class="tbl-wrap">
+                <table class="dtable" id="num-stats-table">
+                    <thead><tr><th>Feature</th><th>Mean</th><th>Median</th><th>Std</th><th>Min</th><th>Q1</th><th>Q3</th><th>Max</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Description -->
+    <div class="card mt">
+        <h3><i data-lucide="book-open"></i> Feature Description &amp; Clinical Encoding</h3>
+        <div class="tbl-wrap">
+            <table class="dtable">
+                <thead><tr><th>Feature</th><th>Description</th><th>Type</th><th>Clinical Range / Values</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>age</strong></td><td>Age of the patient in years</td><td>Numerical</td><td>29 to 77 years (Median: 56.0)</td></tr>
+                    <tr><td><strong>sex</strong></td><td>Biological sex of patient</td><td>Categorical</td><td>Male (1) / Female (0)</td></tr>
+                    <tr><td><strong>cp</strong></td><td>Chest pain category</td><td>Categorical</td><td>typical angina, atypical angina, non-anginal, asymptomatic</td></tr>
+                    <tr><td><strong>restbp</strong></td><td>Resting blood pressure on admission (mm Hg)</td><td>Numerical</td><td>94 to 200 mm Hg (Median: 130.0)</td></tr>
+                    <tr><td><strong>chol</strong></td><td>Serum cholesterol (mg/dl)</td><td>Numerical</td><td>126 to 564 mg/dl (Median: 243.0)</td></tr>
+                    <tr><td><strong>fbs</strong></td><td>Fasting blood sugar &gt; 120 mg/dl</td><td>Categorical</td><td>1 = True; 0 = False</td></tr>
+                    <tr><td><strong>restecg</strong></td><td>Resting electrocardiographic results</td><td>Categorical</td><td>0 = Normal, 1 = ST-T wave abnormality, 2 = LV hypertrophy</td></tr>
+                    <tr><td><strong>thalach</strong></td><td>Maximum heart rate achieved during exercise</td><td>Numerical</td><td>71 to 202 bpm (Median: 153.0)</td></tr>
+                    <tr><td><strong>exang</strong></td><td>Exercise-induced angina</td><td>Categorical</td><td>1 = Yes; 0 = No</td></tr>
+                    <tr><td><strong>oldpeak</strong></td><td>ST depression induced by exercise relative to rest</td><td>Numerical</td><td>0.0 to 6.2 mm (Median: 0.8)</td></tr>
+                    <tr><td><strong>slope</strong></td><td>Slope of peak exercise ST segment</td><td>Categorical</td><td>upsloping, flat, downsloping</td></tr>
+                    <tr><td><strong>ca</strong></td><td>Major vessels colored by fluoroscopy</td><td>Categorical</td><td>0, 1, 2, or 3 vessels</td></tr>
+                    <tr><td><strong>thal</strong></td><td>Thallium heart scan result</td><td>Categorical</td><td>normal, fixed defect, reversable defect</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 2 ─ FEATURE DISTRIBUTIONS (PRESERVED)                   -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="tab-distributions" class="pane">
+    <div class="sec-head"><h2><i data-lucide="bar-chart-3"></i> Feature Distributions</h2>
+        <p>Histograms for numerical features · Count plots for categorical features · Box plots</p></div>
+
+    <h3 class="sub-head">Numerical Features — Histograms with Normal Curve Overlays</h3>
+    <div class="g2">
+        <div class="card"><h4>Age Distribution</h4><div class="ch-md"><canvas id="ch-ageDist"></canvas></div></div>
+        <div class="card"><h4>Resting Blood Pressure (restbp)</h4><div class="ch-md"><canvas id="ch-restbpDist"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h4>Serum Cholesterol (chol)</h4><div class="ch-md"><canvas id="ch-cholDist"></canvas></div></div>
+        <div class="card"><h4>Maximum Heart Rate (thalach)</h4><div class="ch-md"><canvas id="ch-thalachDist"></canvas></div></div>
+    </div>
+    <div class="card mt"><h4>ST Depression (oldpeak)</h4><div class="ch-md"><canvas id="ch-oldpeakDist"></canvas></div></div>
+
+    <h3 class="sub-head mt-lg">Categorical Features — Value Counts</h3>
+    <div class="g2">
+        <div class="card"><h4>Sex (sex)</h4><div class="ch-md"><canvas id="ch-sexCat"></canvas></div></div>
+        <div class="card"><h4>Chest Pain Type (cp)</h4><div class="ch-md"><canvas id="ch-cpCat"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h4>Fasting Blood Sugar &gt; 120 (fbs)</h4><div class="ch-md"><canvas id="ch-fbsCat"></canvas></div></div>
+        <div class="card"><h4>Resting ECG (restecg)</h4><div class="ch-md"><canvas id="ch-restecgCat"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h4>Exercise Induced Angina (exang)</h4><div class="ch-md"><canvas id="ch-exangCat"></canvas></div></div>
+        <div class="card"><h4>ST Slope (slope)</h4><div class="ch-md"><canvas id="ch-slopeCat"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h4>Major Vessels (ca)</h4><div class="ch-md"><canvas id="ch-caCat"></canvas></div></div>
+        <div class="card"><h4>Thallium Result (thal)</h4><div class="ch-md"><canvas id="ch-thalCat"></canvas></div></div>
+    </div>
+
+    <h3 class="sub-head mt-lg">Five-Number Summary (Box-Plot Representation)</h3>
+    <div class="card"><div class="ch-lg"><canvas id="ch-boxAll"></canvas></div></div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 3 ─ CORRELATIONS & RELATIONSHIPS (PRESERVED)            -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="tab-relationships" class="pane">
+    <div class="sec-head"><h2><i data-lucide="git-merge"></i> Correlations &amp; Feature Relationships</h2>
+        <p>Pearson correlation matrix across numerical features &amp; target · Scatter plots by heart disease class</p></div>
+
+    <div class="card">
+        <h3><i data-lucide="grid"></i> Numerical Feature Correlation Matrix</h3>
+        <p class="card-desc">Color-coded correlation heatmap showing linear associations between numerical biomarkers and diagnosis target.</p>
+        <div class="heatmap-container" id="corr-heatmap"></div>
+    </div>
+
+    <h3 class="sub-head mt-lg">Scatter Plots Colored by Target Class</h3>
+    <div class="g2">
+        <div class="card"><h4>Age vs Maximum Heart Rate (thalach)</h4><div class="ch-md"><canvas id="ch-scatter-age-hr"></canvas></div></div>
+        <div class="card"><h4>Serum Cholesterol vs Maximum Heart Rate</h4><div class="ch-md"><canvas id="ch-scatter-chol-hr"></canvas></div></div>
+    </div>
+    <div class="card mt"><h4>Resting Blood Pressure vs Serum Cholesterol</h4><div class="ch-md"><canvas id="ch-scatter-bp-chol"></canvas></div></div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 4 ─ FEATURE vs TARGET (PRESERVED)                       -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="tab-target" class="pane">
+    <div class="sec-head"><h2><i data-lucide="target"></i> Feature vs Target Analysis</h2>
+        <p>Distribution of healthy (0) and diseased (1) patients across all categorical variables</p></div>
+
+    <div class="g2">
+        <div class="card"><h3>Sex vs Target</h3><div class="ch-md"><canvas id="ch-sex-tgt"></canvas></div></div>
+        <div class="card"><h3>Chest Pain Type vs Target</h3><div class="ch-md"><canvas id="ch-cp-tgt"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h3>Fasting Blood Sugar vs Target</h3><div class="ch-md"><canvas id="ch-fbs-tgt"></canvas></div></div>
+        <div class="card"><h3>Exercise Angina vs Target</h3><div class="ch-md"><canvas id="ch-exang-tgt"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h3>Thalium Scan vs Target</h3><div class="ch-md"><canvas id="ch-thal-tgt"></canvas></div></div>
+        <div class="card"><h3>ST Slope vs Target</h3><div class="ch-md"><canvas id="ch-slope-tgt"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+        <div class="card"><h3>Resting ECG vs Target</h3><div class="ch-md"><canvas id="ch-ecg-tgt"></canvas></div></div>
+        <div class="card"><h3>Major Vessels (ca) vs Target</h3><div class="ch-md"><canvas id="ch-ca-tgt"></canvas></div></div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 5 ─ HYPERPARAMETER TUNING, KERNELS & MODELS             -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="tab-models" class="pane">
+    <div class="sec-head">
+        <h2><i data-lucide="cpu"></i> Hyperparameter Tuning &amp; SVM Kernel Analysis</h2>
+        <p>GridSearchCV parameter optimization · Kernel comparison (Linear, Poly, RBF, Sigmoid) · 5-Classifier benchmark</p>
+    </div>
+
+    <!-- ── 1. HYPERPARAMETER TUNING SECTION ── -->
+    <div class="tuning-banner card">
+        <div class="tb-left">
+            <div class="tb-badge"><i data-lucide="sparkles"></i> Optimal Hyperparameters Found</div>
+            <h3 class="tb-title">SVM RBF: C = 10.0, &gamma; = 0.001</h3>
+            <p class="tb-desc">Determined via 5-Fold Stratified Cross-Validation on the Cleveland cohort. Best CV Accuracy: <strong class="text-green" id="tb-cv-score">80.56%</strong>.</p>
+        </div>
+        <div class="tb-stats">
+            <div class="tb-stat-box">
+                <span class="tbs-lbl">Regularization (C)</span>
+                <span class="tbs-val">10.0</span>
+            </div>
+            <div class="tb-stat-box">
+                <span class="tbs-lbl">Kernel Coefficient (&gamma;)</span>
+                <span class="tbs-val">0.001</span>
+            </div>
+            <div class="tb-stat-box">
+                <span class="tbs-lbl">Kernel Function</span>
+                <span class="tbs-val">Radial Basis (RBF)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Baseline vs Tuned Model Comparison Cards -->
+    <div class="g2 mt">
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="sliders"></i> Hyperparameter Tuning Grid Heatmap</h3>
+                <span class="badge green">5-Fold CV Accuracy (%)</span>
+            </div>
+            <p class="card-desc">Validation performance across combinations of regularization C and kernel parameter &gamma;. The optimal combination is highlighted.</p>
+            <div class="tbl-wrap" id="tuning-heatmap-container">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="line-chart"></i> Parameter Sensitivity Curves</h3>
+                <span class="badge blue">Score vs &gamma; for each C</span>
+            </div>
+            <p class="card-desc">Shows how model cross-validation accuracy responds to changes in kernel coefficient &gamma; across regularization levels.</p>
+            <div class="ch-lg"><canvas id="ch-tuning-curve"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ── 2. SVM KERNEL COMPARISON DIAGRAMS ── -->
+    <h3 class="sub-head mt-lg"><i data-lucide="layers"></i> SVM Kernel Comparison (Linear / Polynomial / RBF Tuned / Sigmoid)</h3>
+
+    <div class="g2">
+        <!-- Kernel Comparison Bar Chart -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="bar-chart-2"></i> Kernel Metrics Comparison</h3>
+                <span class="badge teal">Test Set Evaluation</span>
+            </div>
+            <p class="card-desc">Direct comparison of Linear, Polynomial, RBF (Tuned), and Sigmoid kernels across Accuracy, Precision, Recall, F1, and AUC.</p>
+            <div class="ch-lg"><canvas id="ch-kernels"></canvas></div>
+        </div>
+
+        <!-- Kernel Radar Chart -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="radar"></i> Kernel Capabilities Radar</h3>
+                <span class="badge purple">Multi-Dimensional Profile</span>
+            </div>
+            <p class="card-desc">Simultaneous 5-dimensional evaluation of all four SVM kernel implementations.</p>
+            <div class="ch-lg"><canvas id="ch-kernel-radar"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Kernel ROC Curves & Interactive Confusion Matrix Switcher -->
+    <div class="g2 mt">
+        <!-- Kernel ROC Curves -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="trending-up"></i> SVM Kernel ROC Curves</h3>
+                <span class="badge blue">TPR vs FPR</span>
+            </div>
+            <p class="card-desc">Receiver Operating Characteristic curves showing discrimination capability for each kernel.</p>
+            <div class="ch-lg"><canvas id="ch-kernel-roc"></canvas></div>
+        </div>
+
+        <!-- Interactive Confusion Matrix Switcher -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="grid"></i> Interactive Kernel Confusion Matrix</h3>
+            </div>
+            <p class="card-desc">Select an SVM kernel to view its exact classification breakdown and medical risk metrics.</p>
+
+            <!-- Kernel Selector Pills -->
+            <div class="kernel-pills" id="kernel-pill-selector">
+                <button class="k-pill active" data-kernel="rbf"><i data-lucide="sparkles"></i> RBF (Tuned)</button>
+                <button class="k-pill" data-kernel="linear">Linear</button>
+                <button class="k-pill" data-kernel="poly">Polynomial</button>
+                <button class="k-pill" data-kernel="sigmoid">Sigmoid</button>
+            </div>
+
+            <!-- Confusion Matrix Cells -->
+            <div class="cm-grid">
+                <div class="cm-cell tn"><span class="cm-t">True Negative (TN)</span><span class="cm-v" id="k-cm-tn">—</span><span class="cm-d">Correctly No Disease</span></div>
+                <div class="cm-cell fp"><span class="cm-t">False Positive (FP)</span><span class="cm-v" id="k-cm-fp">—</span><span class="cm-d">Incorrectly Flagged</span></div>
+                <div class="cm-cell fn"><span class="cm-t">False Negative (FN)</span><span class="cm-v" id="k-cm-fn">—</span><span class="cm-d">Missed Case (High Risk!)</span></div>
+                <div class="cm-cell tp"><span class="cm-t">True Positive (TP)</span><span class="cm-v" id="k-cm-tp">—</span><span class="cm-d">Correctly Heart Disease</span></div>
+            </div>
+
+            <div class="alert">
+                <i data-lucide="alert-triangle"></i>
+                <div id="k-cm-alert"><strong>Medical Note:</strong> Lower False Negatives (FN) directly protect patients by preventing missed heart disease cases.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kernel Results Table -->
+    <div class="card mt">
+        <h3><i data-lucide="table"></i> SVM Kernel Performance Summary Table</h3>
+        <div class="tbl-wrap">
+            <table class="dtable" id="kernel-table">
+                <thead><tr><th>Kernel</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>ROC AUC</th><th>Support Vectors</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── 3. 5-CLASSIFIER COMPARISON (PROJECT SYLLABUS) ── -->
+    <h3 class="sub-head mt-lg"><i data-lucide="trophy"></i> 5-Classifier Benchmark (Project Syllabus)</h3>
+    <div class="card">
+        <h3>5-Classifier Comparison (RF, SVM Tuned, Logistic Regression, KNN, Decision Tree)</h3>
+        <div class="ch-lg"><canvas id="ch-5clf"></canvas></div>
+        <div class="tbl-wrap mt">
+            <table class="dtable" id="clf-table">
+                <thead><tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>ROC AUC</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Best Classifier Metrics Cards -->
+    <div class="card mt">
+        <h3><i data-lucide="award"></i> Best Classifier Overall Metrics (Cleveland Test Set)</h3>
+        <div class="metric-cards mt">
+            <div class="mc blue"><span class="mc-l">Accuracy</span><span class="mc-v" id="mc-acc">—</span></div>
+            <div class="mc purple"><span class="mc-l">Precision</span><span class="mc-v" id="mc-pre">—</span></div>
+            <div class="mc green"><span class="mc-l">Recall</span><span class="mc-v" id="mc-rec">—</span><span class="mc-badge">Medical Focus</span></div>
+            <div class="mc orange"><span class="mc-l">F1-Score</span><span class="mc-v" id="mc-f1">—</span></div>
+            <div class="mc teal"><span class="mc-l">ROC AUC</span><span class="mc-v" id="mc-auc">—</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 6 ─ PATIENT PREDICTION                                  -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="tab-predict" class="pane">
+    <div class="sec-head"><h2><i data-lucide="stethoscope"></i> Interactive Patient Prediction</h2>
+        <p>Classify heart disease using the Hyperparameter-Tuned SVM (or selected kernel) · Compare against dataset</p></div>
+
+    <div class="g2">
+        <!-- Form -->
+        <div class="card">
+            <div class="card-top">
+                <h3><i data-lucide="sliders"></i> Patient Attributes</h3>
+                <button class="btn-outline" id="load-sample"><i data-lucide="sparkles"></i> Load Sample Patient</button>
+            </div>
+            <form id="patient-form" class="pf-grid">
+                <!-- Model Engine Selector -->
+                <div class="fg full model-selector-box">
+                    <label><i data-lucide="cpu"></i> Classification Model Engine</label>
+                    <select id="f-kernel" class="model-select">
+                        <option value="rbf" selected>★ Hyperparameter-Tuned SVM (RBF: C=10.0, γ=0.001) — Recommended</option>
+                        <option value="linear">SVM (Linear Kernel — C=1.0)</option>
+                        <option value="poly">SVM (Polynomial Kernel — Degree=3)</option>
+                        <option value="sigmoid">SVM (Sigmoid Kernel — C=1.0)</option>
+                    </select>
+                </div>
+
+                <div class="fg"><label>Age (years)</label><input type="number" id="f-age" value="55" min="18" max="100" required></div>
+                <div class="fg"><label>Sex</label><select id="f-sex"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                <div class="fg"><label>Chest Pain Type (cp)</label>
+                    <select id="f-cp"><option value="asymptomatic">Asymptomatic</option><option value="non-anginal">Non-Anginal</option><option value="atypical angina">Atypical Angina</option><option value="typical angina">Typical Angina</option></select></div>
+                <div class="fg"><label>Resting BP (mm Hg)</label><input type="number" id="f-restbp" value="145" min="80" max="220" required></div>
+                <div class="fg"><label>Serum Cholesterol (mg/dl)</label><input type="number" id="f-chol" value="240" min="100" max="600" required></div>
+                <div class="fg"><label>Fasting Blood Sugar &gt; 120</label><select id="f-fbs"><option value="0.0">No (&le; 120 mg/dl)</option><option value="1.0">Yes (&gt; 120 mg/dl)</option></select></div>
+                <div class="fg"><label>Resting ECG</label><select id="f-restecg"><option value="0.0">Normal</option><option value="1.0">ST-T Wave Abnormality</option><option value="2.0">LV Hypertrophy</option></select></div>
+                <div class="fg"><label>Max Heart Rate</label><input type="number" id="f-thalach" value="130" min="60" max="220" required></div>
+                <div class="fg"><label>Exercise Angina</label><select id="f-exang"><option value="1.0">Yes</option><option value="0.0">No</option></select></div>
+                <div class="fg"><label>ST Depression (oldpeak)</label><input type="number" step="0.1" id="f-oldpeak" value="1.5" min="0" max="7" required></div>
+                <div class="fg"><label>ST Slope</label><select id="f-slope"><option value="flat">Flat</option><option value="upsloping">Upsloping</option><option value="downsloping">Downsloping</option></select></div>
+                <div class="fg"><label>Major Vessels (ca)</label><select id="f-ca"><option value="0.0">0</option><option value="1.0">1</option><option value="2.0">2</option><option value="3.0">3</option></select></div>
+                <div class="fg full"><label>Thalium Result</label><select id="f-thal"><option value="reversable defect">Reversible Defect</option><option value="normal">Normal</option><option value="fixed defect">Fixed Defect</option></select></div>
+                <div class="fg full"><button type="submit" class="btn-primary" id="btn-predict"><i data-lucide="play-circle"></i> Predict &amp; Analyze with Tuned Model</button></div>
+            </form>
+        </div>
+
+        <!-- Results -->
+        <div class="results-col">
+            <div class="card result-card">
+                <div class="card-top">
+                    <h3><i data-lucide="file-text"></i> Prediction Result</h3>
+                    <span class="badge blue" id="res-model-badge">Hyperparameter-Tuned SVM (RBF)</span>
+                </div>
+                <div class="pred-box" id="pred-box">
+                    <div class="pred-badge" id="pred-badge">Awaiting Input</div>
+                    <div class="pred-class" id="pred-class">—</div>
+                    <div class="pred-scores">
+                        <div><span class="ps-l">Confidence Probability:</span><span class="ps-v" id="pred-prob">—</span></div>
+                        <div><span class="ps-l">SVM Decision Score:</span><span class="ps-v" id="pred-score">—</span></div>
+                    </div>
+                    <div class="disclaimer"><i data-lucide="alert-triangle"></i> This result is a machine-learning classification from the supplied dataset. It is not a clinical diagnosis.</div>
+                </div>
+            </div>
+
+            <!-- Patient vs Dataset Comparison -->
+            <div class="card">
+                <h3><i data-lucide="sliders-horizontal"></i> Patient vs Dataset Comparison</h3>
+                <p class="card-desc">Compares the patient's quantitative measurements against the Cleveland dataset medians.</p>
+                <div id="comparison-list" class="comp-list"><p class="muted">Submit patient form to compare.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Similar Patients -->
+    <div class="card mt">
+        <div class="card-top">
+            <h3><i data-lucide="users"></i> Most Similar Patients in Dataset (Euclidean Distance)</h3>
+            <span class="badge teal">Top 4 Nearest Neighbors</span>
+        </div>
+        <p class="card-desc">Exploratory analysis showing existing dataset patients whose standardized profiles are closest to the entered patient.</p>
+        <div class="tbl-wrap">
+            <table class="dtable">
+                <thead><tr><th>#</th><th>Similarity</th><th>Age</th><th>Sex</th><th>Rest BP</th><th>Chol</th><th>Max HR</th><th>CP</th><th>Actual Target</th></tr></thead>
+                <tbody id="sim-body"><tr><td colspan="9" class="muted">Submit patient form to find similar records.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<footer class="footer"><p>&copy; 2026 Heart Disease Prediction · UCI Cleveland Dataset · Scikit-learn SVM Pipeline &amp; Hyperparameter Tuning Analysis · Developed by <a href="https://github.com/Chandansoni12" target="_blank" rel="noopener noreferrer" style="color: var(--blue); font-weight: 600; text-decoration: none;">@Chandansoni12</a></p></footer>
+
+<script src="/static/app.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
